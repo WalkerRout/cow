@@ -1,6 +1,6 @@
 CC = g++
 OBJS = src/*.cpp
-OBJ = bin/template
+OBJ = bin/cow
 CFLAGS = -std=gnu++20 
 LIBS = 
 
