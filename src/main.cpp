@@ -6,27 +6,56 @@
 template <typename T>
 struct Cow {
   template<typename... Args>
-  Cow(Args... args) noexcept: ptr(std::make_shared<T>(args...)) {}
-  Cow(std::shared_ptr<T> p) noexcept: ptr(p) {}
-  Cow(const Cow &c) noexcept: ptr(c.ptr) {}
+  Cow(Args... args): ptr(std::make_shared<T>(args...)) {}
+  Cow(std::shared_ptr<T> p): ptr(p) {}
 
-  auto operator=(const Cow &rhs) const noexcept {
-    ptr = rhs.ptr;
+  // Rule of Five
+  Cow(const Cow &c): ptr(c.ptr) {}
+  Cow(Cow&& c) noexcept: ptr(std::move(c.ptr)) {}
+  auto operator=(const Cow &rhs) const { ptr = rhs.ptr; return *this; }
+  auto operator=(Cow&& rhs) const noexcept { ptr = std::move(rhs.ptr); return *this; }
+  virtual ~Cow() = default;
+
+  // read
+  operator T() const noexcept {
+    return *ptr;
+  }
+  
+  auto operator*() const noexcept -> const T& {
+    return *ptr;
+  }
+  // end read
+
+  // write
+  auto operator=(const T& rhs) {
+    ptr = clone();
+    *ptr = rhs;
+    return *this;
   }
 
-  auto operator=(std::shared_ptr<T> p) const noexcept {
-    ptr = p;
+  auto operator=(T&& rhs) {
+    ptr = clone();
+    *ptr = std::move(rhs);
+    return *this;
+  }
+  // end write
+
+  auto clone() const -> std::shared_ptr<T> {
+    if (ptr.use_count() == 1)
+      return ptr;
+
+    return std::make_shared<T>(*ptr); // make clone by dereferencing
   }
 
-  auto operator==(const Cow &rhs) const noexcept {
+  auto operator==(const Cow &rhs) const noexcept -> bool {
     return ptr == rhs.ptr;
   }
 
-  auto operator*() const noexcept {
-    return *ptr;
+  auto compare(const Cow &rhs) const -> bool {
+    return *ptr == *rhs.ptr;
   }
 
-  auto pointer() const {
+  auto pointer() const -> std::string {
     auto fmt = "%p";
     auto data = ptr.get();
     auto size = std::snprintf(nullptr, 0, fmt, data);
@@ -36,22 +65,6 @@ struct Cow {
       exit(EXIT_FAILURE);
     
     return std::string{buf.begin(), buf.end()};
-  }
-
-  auto compare(const Cow &rhs) const noexcept {
-    return *ptr == *rhs.ptr;
-  }
-
-  auto& write() noexcept {
-    ptr = clone();
-    return ptr;
-  }
-
-  auto clone() noexcept {
-    if (ptr.use_count() == 1)
-      return ptr;
-
-    return std::make_shared<T>(*ptr); // make clone by dereferencing
   }
 
   friend auto& operator<<(std::ostream &os, const Cow &c) noexcept {
@@ -71,15 +84,15 @@ auto main() -> int {
   std::cout << "A addr " << a.pointer() << "\n";
   std::cout << "B addr " << b.pointer() << "\n";
 
-  *b.write() = 3;
+  b = 3;
   
   std::cout << "B now " << b << "\n";
   std::cout << "A addr " << a.pointer() << "\n";
   std::cout << "B addr " << b.pointer() << "\n";
 
   auto c = b;
-  *b.write() = 4;
-  
+  b = 4;
+
   std::cout << "B now " << b << "\n";
   std::cout << "B data " << b << ", address " << b.pointer() << "\n";
   std::cout << "C data " << c << ", address " << c.pointer() << "\n";
