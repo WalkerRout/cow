@@ -17,13 +17,11 @@ struct Cow {
   virtual ~Cow() = default;
 
   // read
-  operator T() const noexcept {
-    return *ptr;
-  }
-  
-  auto operator*() const noexcept -> const T& {
-    return *ptr;
-  }
+  operator T() const noexcept { return *ptr; }
+  operator const T&() const noexcept { return *ptr; }
+  operator T&&() = delete;
+
+  auto operator*() const noexcept -> const T& { return *ptr; }
   // end read
 
   // write
@@ -40,20 +38,15 @@ struct Cow {
   }
   // end write
 
-  auto clone() const -> std::shared_ptr<T> {
+  auto clone() const {
     if (ptr.use_count() == 1)
       return ptr;
 
     return std::make_shared<T>(*ptr); // make clone by dereferencing
   }
 
-  auto operator==(const Cow &rhs) const noexcept -> bool {
-    return ptr == rhs.ptr;
-  }
-
-  auto compare(const Cow &rhs) const -> bool {
-    return *ptr == *rhs.ptr;
-  }
+  auto operator==(const Cow &rhs) const { return ptr == rhs.ptr; }
+  auto compare(const Cow &rhs) const { return *ptr == *rhs.ptr; }
 
   auto pointer() const -> std::string {
     auto fmt = "%p";
