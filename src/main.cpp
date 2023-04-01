@@ -1,6 +1,7 @@
 #include <memory>
 #include <vector>
 #include <iostream>
+#include <stdexcept>
 #include <functional>
 
 template <typename T>
@@ -55,7 +56,7 @@ struct Cow {
     std::vector<char> buf(size+1);
     
     if (std::snprintf(&buf[0], buf.size(), "%p", ptr.get()) < 0)
-      exit(EXIT_FAILURE);
+      throw std::runtime_error("Error - point() const -> std::string - unable to produce Cow address as string");
     
     return std::string{buf.begin(), buf.end()};
   }
